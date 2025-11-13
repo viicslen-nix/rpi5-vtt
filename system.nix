@@ -54,39 +54,18 @@ in {
     "net.ipv4.ip_forward" = 1;
     "net.ipv4.conf.all.forwarding" = 1;
   };
+
+  hardware.enableRedistributableFirmware = true;
   
   networking = {
     hostId = "8821e309";
     hostName = name;
     useNetworkd = true;
     
-    # Disable wireless client mode since we're setting up as AP
-    wireless = {
-      enable = false;
-      iwd.enable = false;
-    };
-    
-    # Enable WiFi access point
-    wireless.hostapd = {
-      enable = true;
-      interface = "wlan0";
-      settings = {
-        ssid = "VTT-Gaming";
-        wpaPassphrase = "vttgaming123";
-        hw_mode = "g";
-        channel = 7;
-        ieee80211n = 1;
-        wmm_enabled = 1;
-        ht_capab = "[HT40][SHORT-GI-20][DSSS_CCK-40]";
-        macaddr_acl = 0;
-        auth_algs = 1;
-        ignore_broadcast_ssid = 0;
-        wpa = 2;
-        wpa_pairwise = "TKIP";
-        rsn_pairwise = "CCMP";
-        wpa_key_mgmt = "WPA-PSK";
-      };
-    };
+    wireless.enable = true;
+
+    networkmanager.unmanaged = [ "interface-name:wlan*" ]
+      ++ lib.optional config.services.hostapd.enable "interface-name:${config.services.hostapd.interface}";
     
     # Enable IP forwarding for internet sharing
     nat = {
@@ -159,6 +138,14 @@ in {
   services = {
     getty.autologinUser = name;
     openssh.enable = true;
+
+    services.hostapd = {
+      enable = true;
+      interface = "wlan0";
+      hwMode = "g";
+      ssid = "VTT-Gaming";
+      wpaPassphrase = "vttgaming123";
+    };
     
     # DNS and DHCP for access point clients
     dnsmasq = {
