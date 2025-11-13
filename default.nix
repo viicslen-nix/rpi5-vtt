@@ -14,7 +14,7 @@
     ./hardware.nix
     
     # Foundry VTT service configuration  
-    ./foundry-vtt.nix
+    ./configuration.nix
   ];
 
   # Create WPA password file for hostapd
