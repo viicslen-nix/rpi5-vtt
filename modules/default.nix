@@ -19,4 +19,7 @@
   
   # Utilities and tools
   utilities = ./utilities.nix;
+  
+  # Display and kiosk mode
+  display = ./display.nix;
 }

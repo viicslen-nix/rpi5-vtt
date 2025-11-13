@@ -11,6 +11,7 @@ A complete NixOS configuration for Raspberry Pi 5 that provides a WiFi Access Po
 - **🔐 Secure SSH**: Key-based authentication with passwordless sudo
 - **🎲 Foundry VTT**: Complete virtual tabletop server ready to use
 - **🛠️ Debug Tools**: Built-in network monitoring and status scripts
+- **📺 Kiosk Mode**: Auto-login with fullscreen browser display for connected monitors
 
 ## 🚀 Quick Start
 
@@ -50,7 +51,6 @@ Once connected to the WiFi network, access your server via:
 ├── default.nix            # Main configuration entry point
 ├── hardware.nix           # Raspberry Pi 5 hardware config
 ├── configuration.nix      # Foundry VTT service setup
-└── disko.nix              # Disk partitioning configuration
 ```
 
 ### 🧩 Modular Components

@@ -27,4 +27,9 @@ in {
       ];
     };
   };
+
+  # Create WPA password file for hostapd
+  environment.etc."hostapd.wpa_psk".text = ''
+    foundrycast
+  '';
 }
