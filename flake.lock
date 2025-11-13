@@ -40,19 +40,14 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1762963193,
-        "narHash": "sha256-hllPI1Q/LbYeT6ViU9HWj2NPboVxeoE89yqURyvsWGw=",
-        "ref": "main",
-        "rev": "8666071be64de61198f5fe114c0f1f268a76d29e",
-        "revCount": 1,
-        "type": "git",
-        "url": "ssh://git@github.com/viicslen-nix/foundry-vtt"
+        "path": "flakes/foundry-vtt",
+        "type": "path"
       },
       "original": {
-        "ref": "main",
-        "type": "git",
-        "url": "ssh://git@github.com/viicslen-nix/foundry-vtt"
-      }
+        "path": "flakes/foundry-vtt",
+        "type": "path"
+      },
+      "parent": []
     },
     "nixos-images": {
       "inputs": {
