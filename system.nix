@@ -177,8 +177,10 @@ in {
         ];
         
         # Custom hostname resolution for VTT
-        address = "/vtt.local/192.168.4.1";
-        address = "/foundry.local/192.168.4.1";
+        address = [
+          "/vtt.local/192.168.4.1"
+          "/foundry.local/192.168.4.1"
+        ];
         
         # Enable local domain resolution
         local = "/local/";
