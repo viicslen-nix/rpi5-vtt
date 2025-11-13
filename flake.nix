@@ -2,9 +2,10 @@
   description = "A very basic flake";
 
   inputs = {
+    self.submodules = true;
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     nixos-raspberrypi.url = "github:nvmd/nixos-raspberrypi/main";
-    foundry-vtt.url = "git+ssh://git@github.com/viicslen-nix/foundry-vtt?ref=main";
+    foundry-vtt.url = ./flakes/foundry-vtt;
   };
 
   nixConfig = {

@@ -218,7 +218,6 @@ in {
     wget
     # Networking tools for debugging
     iw
-    iwconfig
     hostapd
     dnsmasq
     iptables
