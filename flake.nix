@@ -2,9 +2,9 @@
   description = "A very basic flake";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     nixos-raspberrypi.url = "github:nvmd/nixos-raspberrypi/main";
-    foundry-vtt.url = "git+ssh://git@github.com/viicslen-nix/foundry-vtt.git";
+    foundry-vtt.url = "git+ssh://git@github.com/viicslen-nix/foundry-vtt?ref=main";
   };
 
   nixConfig = {
@@ -16,11 +16,15 @@
     ];
   };
 
-  outputs = { self, nixpkgs, ... }@inputs: {
+  outputs = inputs @ { self, nixpkgs, ... }: {
     nixosConfigurations.vtt = inputs.nixos-raspberrypi.lib.nixosSystemFull {
-      specialArgs = { inherit inputs; };
+      specialArgs = { 
+        inherit inputs;
+        inherit (inputs) nixos-raspberrypi;
+      };
       modules = [
         ./system.nix
+	./hardware.nix
         ./configuration.nix
       ];
     };

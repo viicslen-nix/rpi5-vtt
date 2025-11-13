@@ -11,4 +11,6 @@ in {
       ExecStart = lib.getExe foundry-vtt;
     };
   };
+
+  networking.firewall.allowedTCPPorts = [30000];
 }

@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }: let 
+{ inputs, config, pkgs, lib, ... }: let 
   name = "vtt"; 
 in {
   imports = with inputs.nixos-raspberrypi.nixosModules; [
@@ -40,6 +40,7 @@ in {
   };
 
   users.users.${name} = {
+    initialPassword = name;
     isNormalUser = true;
     extraGroups = [
       "wheel"
