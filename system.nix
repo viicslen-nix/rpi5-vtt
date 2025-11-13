@@ -1,5 +1,31 @@
 { inputs, config, pkgs, lib, ... }: let 
-  name = "vtt"; 
+  name = "vtt";
+  
+  # Helper script for WiFi AP management
+  wifi-ap-status = pkgs.writeShellScriptBin "wifi-ap-status" ''
+    echo "=== WiFi Access Point Status ==="
+    echo "Network Interface Status:"
+    ${pkgs.iproute2}/bin/ip addr show wlan0
+    echo ""
+    echo "Hostapd Status:"
+    systemctl status hostapd
+    echo ""
+    echo "Connected Clients:"
+    ${pkgs.iw}/bin/iw dev wlan0 station dump
+    echo ""
+    echo "DHCP Leases:"
+    if [ -f /var/lib/dhcp/dhcpd.leases ]; then
+      cat /var/lib/dhcp/dhcpd.leases
+    fi
+    echo ""
+    echo "Foundry VTT Service Status:"
+    systemctl status foundry-vtt
+    echo ""
+    echo "Available hostnames for clients:"
+    echo "  - http://vtt.local:30000"
+    echo "  - http://foundry.local:30000"
+    echo "  - http://192.168.4.1:30000"
+  '';
 in {
   imports = with inputs.nixos-raspberrypi.nixosModules; [
     raspberry-pi-5.base
@@ -20,21 +46,62 @@ in {
     ];
   };
   
+  # Enable necessary kernel modules for WiFi AP
+  boot.kernelModules = [ "brcmfmac" ];
+  
+  # Enable IP forwarding
+  boot.kernel.sysctl = {
+    "net.ipv4.ip_forward" = 1;
+    "net.ipv4.conf.all.forwarding" = 1;
+  };
+  
   networking = {
     hostId = "8821e309";
     hostName = name;
     useNetworkd = true;
+    
+    # Disable wireless client mode since we're setting up as AP
     wireless = {
       enable = false;
-      iwd = {
-        enable = true;
-        settings = {
-          Network = {
-            EnableIPv6 = true;
-            RoutePriorityOffset = 300;
-          };
-          Settings.AutoConnect = true;
-        };
+      iwd.enable = false;
+    };
+    
+    # Enable WiFi access point
+    wireless.hostapd = {
+      enable = true;
+      interface = "wlan0";
+      settings = {
+        ssid = "VTT-Gaming";
+        wpaPassphrase = "vttgaming123";
+        hw_mode = "g";
+        channel = 7;
+        ieee80211n = 1;
+        wmm_enabled = 1;
+        ht_capab = "[HT40][SHORT-GI-20][DSSS_CCK-40]";
+        macaddr_acl = 0;
+        auth_algs = 1;
+        ignore_broadcast_ssid = 0;
+        wpa = 2;
+        wpa_pairwise = "TKIP";
+        rsn_pairwise = "CCMP";
+        wpa_key_mgmt = "WPA-PSK";
+      };
+    };
+    
+    # Enable IP forwarding for internet sharing
+    nat = {
+      enable = true;
+      externalInterface = "eth0";  # Assuming ethernet for internet
+      internalInterfaces = [ "wlan0" ];
+    };
+    
+    firewall = {
+      enable = true;
+      allowedTCPPorts = [ 22 53 67 68 30000 ];
+      allowedUDPPorts = [ 53 67 68 ];
+      interfaces.wlan0 = {
+        allowedTCPPorts = [ 22 53 67 68 30000 ];
+        allowedUDPPorts = [ 53 67 68 ];
       };
     };
   };
@@ -56,9 +123,26 @@ in {
   nix.settings.trusted-users = [name];
 
   systemd = {
-    network.networks = {
-      "99-ethernet-default-dhcp".networkConfig.MulticastDNS = "yes";
-      "99-wireless-client-dhcp".networkConfig.MulticastDNS = "yes";
+    network = {
+      networks = {
+        # Ethernet interface for internet connectivity
+        "99-ethernet-default-dhcp" = {
+          matchConfig.Name = "eth0";
+          networkConfig = {
+            DHCP = "ipv4";
+            MulticastDNS = "yes";
+          };
+        };
+        
+        # WiFi interface for access point (don't use DHCP)
+        "10-wlan0" = {
+          matchConfig.Name = "wlan0";
+          networkConfig = {
+            Address = "192.168.4.1/24";
+            IPForward = "yes";
+          };
+        };
+      };
     };
     
     # This comment was lifted from `srvos`
@@ -75,6 +159,50 @@ in {
   services = {
     getty.autologinUser = name;
     openssh.enable = true;
+    
+    # DNS and DHCP for access point clients
+    dnsmasq = {
+      enable = true;
+      settings = {
+        # Interface to listen on
+        interface = "wlan0";
+        
+        # DHCP range for clients
+        dhcp-range = "192.168.4.10,192.168.4.100,24h";
+        
+        # Set gateway
+        dhcp-option = [
+          "3,192.168.4.1"  # Gateway
+          "6,192.168.4.1"  # DNS server
+        ];
+        
+        # Custom hostname resolution for VTT
+        address = "/vtt.local/192.168.4.1";
+        address = "/foundry.local/192.168.4.1";
+        
+        # Enable local domain resolution
+        local = "/local/";
+        domain = "local";
+        
+        # Don't read /etc/hosts
+        no-hosts = true;
+        
+        # Don't read /etc/resolv.conf
+        no-resolv = true;
+        
+        # Set upstream DNS servers
+        server = [
+          "8.8.8.8"
+          "8.8.4.4"
+        ];
+        
+        # Cache size
+        cache-size = 1000;
+        
+        # Log DHCP requests for debugging
+        log-dhcp = true;
+      };
+    };
 
     udev.extraRules = ''
       # Ignore partitions with "Required Partition" GPT partition attribute
@@ -89,5 +217,15 @@ in {
     git
     vim
     wget
+    # Networking tools for debugging
+    iw
+    iwconfig
+    hostapd
+    dnsmasq
+    iptables
+    nmap
+    tcpdump
+    # Custom script for AP status
+    wifi-ap-status
   ];
 }
