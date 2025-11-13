@@ -1,6 +1,10 @@
-{inputs, pkgs, lib, ...}: let
+{inputs, pkgs, lib, ...}: 
+
+let
   foundry-vtt = inputs.foundry-vtt.packages.${pkgs.system}.default;
 in {
+  # Foundry VTT Server Configuration
+  
   environment.systemPackages = [
     foundry-vtt
   ];
@@ -11,7 +15,7 @@ in {
     wantedBy = [ "multi-user.target" ];
     after = [ "network.target" ];
     serviceConfig = {
-      ExecStart = "${lib.getExe foundry-vtt}";
+      ExecStart = "${lib.getExe foundry-vtt} --dataPath=/home/vtt/foundrydata";
       Restart = "always";
       RestartSec = 10;
       User = "vtt";
@@ -23,7 +27,4 @@ in {
       ];
     };
   };
-
-  # Open firewall for Foundry VTT
-  networking.firewall.allowedTCPPorts = [30000];
 }
