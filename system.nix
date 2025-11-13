@@ -54,18 +54,20 @@ in {
     "net.ipv4.ip_forward" = 1;
     "net.ipv4.conf.all.forwarding" = 1;
   };
-
-  hardware.enableRedistributableFirmware = true;
+  
+  # Create WPA password file for hostapd
+  environment.etc."hostapd.wpa_psk".text = "vttgaming123";
   
   networking = {
     hostId = "8821e309";
     hostName = name;
     useNetworkd = true;
     
-    wireless.enable = true;
-
-    networkmanager.unmanaged = [ "interface-name:wlan*" ]
-      ++ lib.optional config.services.hostapd.enable "interface-name:${config.services.hostapd.interface}";
+    # Disable wireless client mode since we're setting up as AP
+    wireless = {
+      enable = false;
+      iwd.enable = false;
+    };
     
     # Enable IP forwarding for internet sharing
     nat = {
@@ -138,13 +140,21 @@ in {
   services = {
     getty.autologinUser = name;
     openssh.enable = true;
-
-    services.hostapd = {
+    
+    # WiFi access point
+    hostapd = {
       enable = true;
-      interface = "wlan0";
-      hwMode = "g";
-      ssid = "VTT-Gaming";
-      wpaPassphrase = "vttgaming123";
+      radios.wlan0 = {
+        band = "2g";
+        channel = 7;
+        networks.wlan0 = {
+          ssid = "VTT-Gaming";
+          authentication = {
+            mode = "wpa2-sha256";
+            wpaPasswordFile = "/etc/hostapd.wpa_psk";
+          };
+        };
+      };
     };
     
     # DNS and DHCP for access point clients
