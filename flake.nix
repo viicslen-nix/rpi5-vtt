@@ -3,13 +3,8 @@
 
   inputs = {
     self.submodules = true;
-    nixpkgs.url = "github:nvmd/nixpkgs/modules-with-keys-25.05";
-
-    nixos-raspberrypi = {
-      url = "github:nvmd/nixos-raspberrypi/main";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    nixos-raspberrypi.url = "github:nvmd/nixos-raspberrypi/main";
     foundry-vtt.url = ./flakes/foundry-vtt;
   };
 
