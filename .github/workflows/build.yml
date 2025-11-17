@@ -50,6 +50,7 @@ jobs:
           nix run github:Mic92/nix-fast-build -- \
             --no-nom \
             --skip-cached \
+            --out-link "result" \
             --systems "aarch64-linux" \
             --result-file result.json \
             --flake ".#nixosConfigurations.vtt.config.system.build.toplevel"
