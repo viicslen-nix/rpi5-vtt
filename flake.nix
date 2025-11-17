@@ -3,7 +3,7 @@
 
   inputs = {
     self.submodules = true;
-    nixpkgs.url = "github:nvmd/nixpkgs/modules-with-keys-unstable";
+    nixpkgs.url = "github:nvmd/nixpkgs/modules-with-keys-25.05";
 
     nixos-raspberrypi = {
       url = "github:nvmd/nixos-raspberrypi/main";
