@@ -1,35 +1,27 @@
-{inputs, pkgs, lib, ...}: 
-
-let
-  foundry-vtt = inputs.foundry-vtt.packages.${pkgs.system}.default;
-in {
-  # Foundry VTT Server Configuration
-  
-  environment.systemPackages = [
-    foundry-vtt
+{inputs, pkgs, lib, config, ...}: {
+  # Import all modules
+  imports = [
+    ./modules/common.nix
+    ./modules/system.nix
+    ./modules/networking.nix
+    ./modules/wifi-ap.nix
+    ./modules/web-services.nix
+    ./modules/users.nix
+    ./modules/utilities.nix
+    ./modules/display.nix
+    ./modules/foundry-vtt.nix
   ];
 
-  systemd.services.foundry-vtt = {
-    enable = true;
-    description = "Foundry VTT Server";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "network.target" ];
-    serviceConfig = {
-      ExecStart = "${lib.getExe foundry-vtt} --dataPath=/home/vtt/foundrydata";
-      Restart = "always";
-      RestartSec = 10;
-      User = "vtt";
-      Group = "users";
-      # Bind to all interfaces so it's accessible from WiFi clients
-      Environment = [
-        "FOUNDRY_VTT_HOSTNAME=0.0.0.0"
-        "FOUNDRY_VTT_PORT=30000"
-      ];
-    };
-  };
+  # Centralized, easy-to-tweak values
+  vtt.common = {
+    # Primary user used for login and services
+    userName = "vtt";
 
-  # Create WPA password file for hostapd
-  environment.etc."hostapd.wpa_psk".text = ''
-    foundrycast
-  '';
+    # WiFi Access Point
+    apSsid = "VTT-Gaming";
+    wifiPassphrase = "vttgaming";
+
+    # Local hostnames served by dnsmasq and nginx
+    localDomains = [ "vtt.local" "foundry.local" ];
+  };
 }

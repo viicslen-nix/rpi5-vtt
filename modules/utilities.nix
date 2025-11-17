@@ -1,6 +1,9 @@
 { config, pkgs, lib, ... }:
 
 let
+  echoDomainsNoPort = lib.concatStringsSep "\n" (map (d: ''    echo "    - http://${d}/"'') config.vtt.common.localDomains);
+  echoDomainsWithPort = lib.concatStringsSep "\n" (map (d: ''    echo "    - http://${d}:30000"'') config.vtt.common.localDomains);
+  nslookupLines = lib.concatStringsSep "\n" (map (d: ''    echo "  nslookup ${d} 192.168.4.1"'') config.vtt.common.localDomains);
   # Helper script for WiFi AP management
   wifi-ap-status = pkgs.writeShellScriptBin "wifi-ap-status" ''
     echo "=== WiFi Access Point Status ==="
@@ -26,17 +29,14 @@ let
     echo ""
     echo "Available access methods for clients:"
     echo "  WITHOUT PORT (recommended):"
-    echo "    - http://vtt.local/"
-    echo "    - http://foundry.local/"
+    ${echoDomainsNoPort}
     echo "    - http://192.168.4.1/"
     echo "  WITH PORT (legacy):"
-    echo "    - http://vtt.local:30000"
-    echo "    - http://foundry.local:30000"
+    ${echoDomainsWithPort}
     echo "    - http://192.168.4.1:30000"
     echo ""
     echo "To test DNS resolution from a connected device:"
-    echo "  nslookup vtt.local 192.168.4.1"
-    echo "  nslookup foundry.local 192.168.4.1"
+${nslookupLines}
   '';
 in {
   # System packages and utilities

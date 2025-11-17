@@ -1,7 +1,7 @@
 { config, pkgs, lib, ... }:
 
 let
-  name = "vtt";
+  name = config.vtt.common.userName;
 in {
   # Core networking configuration
   networking = {

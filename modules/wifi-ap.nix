@@ -9,7 +9,7 @@
     driver=nl80211
     
     # Network settings
-    ssid=VTT-Gaming
+    ssid=${config.vtt.common.apSsid}
     hw_mode=g
     channel=7
     country_code=US
@@ -18,10 +18,15 @@
     
     # Security settings (WPA2-PSK with CCMP only)
     wpa=2
-    wpa_passphrase=foundrycast
+    wpa_passphrase=${config.vtt.common.wifiPassphrase}
     wpa_key_mgmt=WPA-PSK
     wpa_pairwise=CCMP
     rsn_pairwise=CCMP
+  '';
+
+  # Create WPA password file for hostapd
+  environment.etc."hostapd.wpa_psk".text = ''
+    ${config.vtt.common.wifiPassphrase}
   '';
 
   systemd.services.manual-hostapd = {
@@ -61,10 +66,7 @@
       ];
       
       # Custom hostname resolution for VTT
-      address = [
-        "/vtt.local/192.168.4.1"
-        "/foundry.local/192.168.4.1"
-      ];
+      address = (map (d: "/${d}/192.168.4.1") config.vtt.common.localDomains);
       
       # Enable local domain resolution
       local = "/local/";

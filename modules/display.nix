@@ -14,8 +14,8 @@
     # wlr-randr     # Display configuration for wlroots compositors
   ];
 
-  # Ensure vtt user has access to video/input devices
-  users.users.vtt.extraGroups = [ "video" "input" "render" ];
+  # Ensure the kiosk user has access to video/input devices
+  users.users.${config.vtt.common.userName}.extraGroups = [ "video" "input" "render" ];
 
   # Disable getty on tty1 since we'll use it for kiosk
   systemd.services."getty@tty1".enable = false;
@@ -27,7 +27,7 @@
       #!/usr/bin/env bash
       # Firefox kiosk launcher (env provided by services.cage.environment)
       sleep 2
-      exec ${pkgs.firefox}/bin/firefox --kiosk "http://vtt.local/"
+      exec ${pkgs.firefox}/bin/firefox --kiosk "http://${config.vtt.common.primaryDomain}/"
     '';
     mode = "0755";
   };
@@ -35,7 +35,7 @@
   # Use the built-in Cage service for kiosk
   services.cage = {
     enable = true;
-    user = "vtt";
+    user = config.vtt.common.userName;
     program = "/etc/vtt-kiosk-firefox.sh";
     environment = {
       MOZ_ENABLE_WAYLAND = "1";

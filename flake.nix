@@ -24,7 +24,8 @@
         inherit (inputs) nixos-raspberrypi;
       };
       modules = [
-        ./default.nix
+        ./hardware.nix
+        ./configuration.nix
       ];
     };
   };
