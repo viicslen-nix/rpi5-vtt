@@ -18,7 +18,7 @@
   };
 
   outputs = inputs @ { self, nixpkgs, ... }: {
-    nixosConfigurations.vtt = inputs.nixos-raspberrypi.lib.nixosSystemFull {
+    nixosConfigurations.vtt = inputs.nixos-raspberrypi.lib.nixosSystem {
       specialArgs = { 
         inherit inputs;
         inherit (inputs) nixos-raspberrypi;
