@@ -2,11 +2,11 @@
 
 ## Using the Built Artifacts
 
-After the GitHub Actions workflow completes, you can download and deploy the artifacts to your Raspberry Pi.
+After the CircleCI workflow completes, you can download and deploy the artifacts to your Raspberry Pi.
 
 ### Option 1: Deploy System Closure (for existing NixOS installation)
 
-1. Download the `nixos-system-<commit-sha>` artifact from the Actions tab
+1. Download the `nixos-system` artifact from the CircleCI Artifacts tab
 2. Extract the artifact on your local machine
 3. Copy to Raspberry Pi and activate:
 
@@ -24,7 +24,7 @@ sudo /nix/var/nix/profiles/system/bin/switch-to-configuration switch
 
 ### Option 2: Flash SD Image (for new installation)
 
-1. Download the `sd-image-<commit-sha>` artifact from the Actions tab
+1. Download the `sd-image` artifact from the CircleCI Artifacts tab
 2. Extract the .img file
 3. Flash to SD card:
 
@@ -46,39 +46,28 @@ If you have SSH access and want to build locally but deploy remotely:
 nixos-rebuild switch --flake .#vtt --target-host vtt@<raspberry-pi-ip> --use-remote-sudo
 ```
 
-## GitHub Actions Setup
+## CircleCI Setup
 
-The workflow requires an ARM64 runner. You can either:
+The workflow uses CircleCI's ARM64 runners which are available for private repositories.
 
-1. **Use GitHub-hosted ARM64 runners** (available for Team and Enterprise plans)
-2. **Self-host an ARM64 runner** on your own hardware
+### Getting Started
 
-### Setting up a Self-Hosted ARM64 Runner
+1. Sign up for CircleCI at https://circleci.com and connect your GitHub account
+2. Add your repository in CircleCI by going to Projects → Set Up Project
+3. CircleCI will automatically detect the `.circleci/config.yml` file and start building
 
-If you don't have access to GitHub-hosted ARM64 runners, you can set up a self-hosted runner:
+### Resource Classes
 
-1. Go to your repository Settings → Actions → Runners → New self-hosted runner
-2. Select Linux and ARM64
-3. Follow the instructions to set up the runner on an ARM64 machine (can be another Raspberry Pi, AWS Graviton instance, etc.)
+The workflow uses `arm.medium` resource class which provides:
+- 2 vCPUs
+- 8GB RAM
+- ARM64 architecture
 
-Alternatively, modify the workflow to use `ubuntu-latest` and enable QEMU for ARM64 emulation (slower but works without ARM64 hardware):
+For faster builds, you can upgrade to `arm.large` (4 vCPUs, 16GB RAM) by changing the `resource_class` in the config.
 
-```yaml
-runs-on: ubuntu-latest
-steps:
-  - name: Set up QEMU
-    uses: docker/setup-qemu-action@v3
-    with:
-      platforms: arm64
-```
+### Build Artifacts
 
-## Cachix Setup (Optional)
-
-To speed up builds by using cached dependencies:
-
-1. Create a Cachix account at https://cachix.org
-2. Create a new binary cache
-3. Generate an auth token
-4. Add the token as a repository secret named `CACHIX_AUTH_TOKEN`
-
-This is optional - the workflow will work without it, just slower.
+After each successful build, artifacts are available in:
+- CircleCI dashboard → Your build → Artifacts tab
+- System toplevel and SD image will be available for download
+- Artifacts are retained according to your CircleCI plan (typically 30 days)

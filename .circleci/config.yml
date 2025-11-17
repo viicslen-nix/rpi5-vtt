@@ -1,0 +1,149 @@
+version: 2.1
+
+orbs:
+  nix: eld/nix@1.1.1
+
+jobs:
+  build-system:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: arm.medium
+    steps:
+    - checkout
+
+    - run:
+        name: Checkout submodules
+        command: |
+          git submodule sync
+          git submodule update --init --recursive
+
+    - run:
+        name: Install Nix
+        command: |
+          sh <(curl -L https://nixos.org/nix/install) --daemon --yes
+          echo 'export NIX_PATH=nixpkgs=channel:nixos-unstable' >> $BASH_ENV
+
+    - run:
+        name: Configure Nix
+        command: |
+          sudo mkdir -p /etc/nix
+          sudo tee /etc/nix/nix.conf > /dev/null <<EOF
+          experimental-features = nix-command flakes
+          substituters = https://cache.nixos.org/ https://nixos-raspberrypi.cachix.org
+          trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nixos-raspberrypi.cachix.org-1:4iMO9LXa8BqhU+Rpg6LQKiGa2lsNh/j2oiYLNOQ5sPI=
+          max-jobs = auto
+          cores = 0
+          EOF
+          sudo systemctl restart nix-daemon
+
+    - run:
+        name: Build NixOS system
+        command: |
+          . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+          nix build .#nixosConfigurations.vtt.config.system.build.toplevel -L
+
+    - run:
+        name: Create deployment package
+        command: |
+          mkdir -p artifacts
+          cp -rL result artifacts/system
+
+          cat > artifacts/manifest.json <<EOF
+          {
+            "build_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "git_commit": "$CIRCLE_SHA1",
+            "git_branch": "$CIRCLE_BRANCH",
+            "build_num": "$CIRCLE_BUILD_NUM",
+            "system": "aarch64-linux",
+            "type": "system-toplevel"
+          }
+          EOF
+
+    - store_artifacts:
+        path: artifacts/system
+        destination: nixos-system
+
+    - store_artifacts:
+        path: artifacts/manifest.json
+        destination: system-manifest.json
+
+    - persist_to_workspace:
+        root: artifacts
+        paths:
+        - manifest.json
+
+  build-sd-image:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: arm.medium
+    steps:
+    - checkout
+
+    - run:
+        name: Checkout submodules
+        command: |
+          git submodule sync
+          git submodule update --init --recursive
+
+    - run:
+        name: Install Nix
+        command: |
+          sh <(curl -L https://nixos.org/nix/install) --daemon --yes
+          echo 'export NIX_PATH=nixpkgs=channel:nixos-unstable' >> $BASH_ENV
+
+    - run:
+        name: Configure Nix
+        command: |
+          sudo mkdir -p /etc/nix
+          sudo tee /etc/nix/nix.conf > /dev/null <<EOF
+          experimental-features = nix-command flakes
+          substituters = https://cache.nixos.org/ https://nixos-raspberrypi.cachix.org
+          trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nixos-raspberrypi.cachix.org-1:4iMO9LXa8BqhU+Rpg6LQKiGa2lsNh/j2oiYLNOQ5sPI=
+          max-jobs = auto
+          cores = 0
+          EOF
+          sudo systemctl restart nix-daemon
+
+    - run:
+        name: Build SD image
+        command: |
+          . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+          nix build .#nixosConfigurations.vtt.config.system.build.sdImage -L
+
+    - run:
+        name: Create SD image artifacts
+        command: |
+          mkdir -p artifacts
+          cp -rL result/* artifacts/
+
+          cat > artifacts/manifest.json <<EOF
+          {
+            "build_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "git_commit": "$CIRCLE_SHA1",
+            "git_branch": "$CIRCLE_BRANCH",
+            "build_num": "$CIRCLE_BUILD_NUM",
+            "system": "aarch64-linux",
+            "type": "sd-image"
+          }
+          EOF
+
+    - store_artifacts:
+        path: artifacts
+        destination: sd-image
+
+workflows:
+  version: 2
+  build-and-deploy:
+    jobs:
+    - build-system:
+        filters:
+          branches:
+            only:
+            - main
+            - /feature\/.*/
+    - build-sd-image:
+        filters:
+          branches:
+            only:
+            - main
+            - /feature\/.*/
