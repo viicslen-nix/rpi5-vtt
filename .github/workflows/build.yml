@@ -1,0 +1,144 @@
+name: Build NixOS System for Raspberry Pi
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-system:
+    name: Build System Toplevel
+    runs-on: ubuntu-latest-arm64
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v26
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            substituters = https://cache.nixos.org/ https://nixos-raspberrypi.cachix.org
+            trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nixos-raspberrypi.cachix.org-1:4iMO9LXa8BqhU+Rpg6LQKiGa2lsNh/j2oiYLNOQ5sPI=
+
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v14
+        with:
+          name: nixos-raspberrypi
+          skipPush: true
+
+      - name: Build NixOS system
+        run: |
+          nix build .#nixosConfigurations.vtt.config.system.build.toplevel -L
+
+      - name: Create deployment package
+        run: |
+          mkdir -p artifacts
+          cp -rL result artifacts/system
+          
+          # Create a manifest with build information
+          cat > artifacts/manifest.json <<EOF
+          {
+            "build_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "git_commit": "${{ github.sha }}",
+            "git_ref": "${{ github.ref }}",
+            "system": "aarch64-linux",
+            "type": "system-toplevel"
+          }
+          EOF
+
+      - name: Upload system artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nixos-system-${{ github.sha }}
+          path: artifacts/system
+          retention-days: 30
+
+      - name: Upload manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: system-manifest-${{ github.sha }}
+          path: artifacts/manifest.json
+          retention-days: 30
+
+  build-sd-image:
+    name: Build SD Image
+    runs-on: ubuntu-latest-arm64
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v26
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            substituters = https://cache.nixos.org/ https://nixos-raspberrypi.cachix.org
+            trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nixos-raspberrypi.cachix.org-1:4iMO9LXa8BqhU+Rpg6LQKiGa2lsNh/j2oiYLNOQ5sPI=
+
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v14
+        with:
+          name: nixos-raspberrypi
+          skipPush: true
+
+      - name: Build SD image
+        run: |
+          nix build .#nixosConfigurations.vtt.config.system.build.sdImage -L
+
+      - name: Create SD image artifacts
+        run: |
+          mkdir -p artifacts
+          cp -rL result/* artifacts/
+          
+          # Create a manifest with build information
+          cat > artifacts/manifest.json <<EOF
+          {
+            "build_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "git_commit": "${{ github.sha }}",
+            "git_ref": "${{ github.ref }}",
+            "system": "aarch64-linux",
+            "type": "sd-image"
+          }
+          EOF
+
+      - name: Upload SD image
+        uses: actions/upload-artifact@v4
+        with:
+          name: sd-image-${{ github.sha }}
+          path: artifacts/*.img*
+          retention-days: 30
+
+      - name: Upload SD image manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: sd-image-manifest-${{ github.sha }}
+          path: artifacts/manifest.json
+          retention-days: 30
+
+  comment-pr:
+    name: Comment on PR
+    runs-on: ubuntu-latest
+    needs: [build-system, build-sd-image]
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Comment on PR with build info
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## ✅ Build Successful\n\n**Commit:** ${context.sha}\n**System:** aarch64-linux\n\n### Available Artifacts:\n- System Toplevel (for deployment to existing NixOS)\n- SD Card Image (for fresh installation)\n\nArtifacts are available for download from the Actions tab.`
+            })
