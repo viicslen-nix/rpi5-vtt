@@ -10,6 +10,7 @@
     ./modules/utilities.nix
     ./modules/display.nix
     ./modules/foundry-vtt.nix
+    ./modules/deploy.nix
   ];
 
   # Centralized, easy-to-tweak values
@@ -23,5 +24,17 @@
 
     # Local hostnames served by dnsmasq and nginx
     localDomains = [ "vtt.local" "foundry.local" ];
+  };
+
+  # Enable GitHub deployment script
+  vtt.deploy = {
+    enable = true;
+    
+    # Optional: Enable automatic updates (disabled by default)
+    # autoUpdate = {
+    #   enable = true;
+    #   schedule = "daily";  # Check daily for updates
+    #   repository = "viicslen-nix/rpi5-vtt";
+    # };
   };
 }

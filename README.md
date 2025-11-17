@@ -16,6 +16,18 @@ A complete NixOS configuration for Raspberry Pi 5 that provides a WiFi Access Po
 ## 🚀 Quick Start
 
 ### 1. Deploy Configuration
+
+#### Option A: Automated Deployment (Recommended)
+The easiest way is to use the built-in deployment script that fetches the latest build from GitHub Actions:
+
+```bash
+# On your Raspberry Pi, run:
+sudo deploy-from-github
+```
+
+This will automatically download and deploy the latest successful build. See [Deployment Guide](scripts/README.md) for details.
+
+#### Option B: Manual Build & Deploy
 ```bash
 # Build the configuration locally
 nix build .#nixosConfigurations.vtt.config.system.build.toplevel
@@ -129,7 +141,59 @@ modules/
 - Auto-start on system boot via systemd service
 - Wayland-native with hardware acceleration
 
-## 🔧 Management & Debugging
+## � Continuous Deployment
+
+### GitHub Actions CI/CD
+
+This project includes automated builds via GitHub Actions:
+
+- **Automatic Builds**: Every push to `main` triggers an ARM64 build
+- **Artifact Storage**: Built systems are stored for 30 days
+- **Easy Deployment**: Download and deploy with a single command
+
+### Deployment Workflow
+
+```bash
+# 1. Make changes locally
+git add .
+git commit -m "Update configuration"
+git push
+
+# 2. Wait for GitHub Actions to build (check Actions tab)
+
+# 3. On your Raspberry Pi, deploy the latest build
+sudo deploy-from-github
+
+# 4. Review changes and confirm
+```
+
+### Deployment Script Features
+
+- ✅ Downloads latest successful build from GitHub
+- ✅ Verifies system closure integrity  
+- ✅ Shows diff of changes (with `nvd`)
+- ✅ Interactive confirmation
+- ✅ Dry-run mode for testing
+- ✅ Optional automatic updates
+
+See [Deployment Documentation](scripts/README.md) for complete details.
+
+### Optional: Automatic Updates
+
+Enable daily automatic deployments in `configuration.nix`:
+
+```nix
+vtt.deploy = {
+  enable = true;
+  autoUpdate = {
+    enable = true;
+    schedule = "daily";  # or "03:00" for 3 AM
+    repository = "viicslen-nix/rpi5-vtt";
+  };
+};
+```
+
+## �🔧 Management & Debugging
 
 ### Status Monitoring
 ```bash
