@@ -45,9 +45,12 @@ jobs:
           skipPush: true
           useDaemon: false
 
-      - name: Build NixOS system
+      - name: Build NixOS system with nix-fast-build
         run: |
-          nix build .#nixosConfigurations.vtt.config.system.build.toplevel -L
+          nix run github:Mic92/nix-fast-build -- \
+            --skip-cached \
+            --flake ".#nixosConfigurations.vtt.config.system.build.toplevel" \
+            --systems "aarch64-linux"
 
       - name: Create deployment package
         run: |
