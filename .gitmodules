@@ -1,3 +1,3 @@
 [submodule "flakes/foundry-vtt"]
 	path = flakes/foundry-vtt
-	url = git@github.com:viicslen-nix/foundry-vtt
+	url = git@github.com:viicslen-nix/foundry-vtt.git

@@ -14,19 +14,15 @@ jobs:
     name: Build System Toplevel
     runs-on: ubuntu-24.04-arm
     steps:
-      - name: Checkout repository
+      - name: Setup SSH Agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.BUILD_SSH_KEY }}
+
+      - name: Checkout repository with submodules
         uses: actions/checkout@v4
         with:
-          ssh-key: ${{ secrets.BUILD_SSH_KEY }}
-
-      - name: Configure Git to use SSH for GitHub
-        run: |
-          git config --global url."git@github.com:".insteadOf "https://github.com/"
-          
-      - name: Checkout submodules
-        run: |
-          git submodule sync --recursive
-          git submodule update --init --recursive
+          submodules: recursive
 
       - name: Install Nix
         uses: cachix/install-nix-action@v26
@@ -77,85 +73,10 @@ jobs:
           path: artifacts/manifest.json
           retention-days: 30
 
-  build-sd-image:
-    name: Build SD Image
-    runs-on: ubuntu-24.04-arm
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          ssh-key: ${{ secrets.BUILD_SSH_KEY }}
-
-      - name: Setup SSH for submodules
-        run: |
-          # Get the SSH command configured by checkout action
-          SSH_CMD=$(git config --local core.sshCommand)
-          echo "SSH Command: $SSH_CMD"
-          
-          # Configure git to use SSH for GitHub globally
-          git config --global url."git@github.com:".insteadOf "https://github.com/"
-          
-          # Set the SSH command globally so submodules can use it
-          git config --global core.sshCommand "$SSH_CMD"
-          
-      - name: Checkout submodules
-        run: |
-          git submodule sync --recursive
-          git submodule update --init --recursive
-
-      - name: Install Nix
-        uses: cachix/install-nix-action@v26
-        with:
-          nix_path: nixpkgs=channel:nixos-unstable
-          extra_nix_config: |
-            experimental-features = nix-command flakes
-            substituters = https://cache.nixos.org/ https://nixos-raspberrypi.cachix.org
-            trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nixos-raspberrypi.cachix.org-1:4iMO9LXa8BqhU+Rpg6LQKiGa2lsNh/j2oiYLNOQ5sPI=
-
-      - name: Setup Cachix
-        uses: cachix/cachix-action@v14
-        with:
-          name: nixos-raspberrypi
-          skipPush: true
-
-      - name: Build SD image
-        run: |
-          nix build .#nixosConfigurations.vtt.config.system.build.sdImage -L
-
-      - name: Create SD image artifacts
-        run: |
-          mkdir -p artifacts
-          cp -rL result/* artifacts/
-          
-          # Create a manifest with build information
-          cat > artifacts/manifest.json <<EOF
-          {
-            "build_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-            "git_commit": "${{ github.sha }}",
-            "git_ref": "${{ github.ref }}",
-            "system": "aarch64-linux",
-            "type": "sd-image"
-          }
-          EOF
-
-      - name: Upload SD image
-        uses: actions/upload-artifact@v4
-        with:
-          name: sd-image-${{ github.sha }}
-          path: artifacts/*.img*
-          retention-days: 30
-
-      - name: Upload SD image manifest
-        uses: actions/upload-artifact@v4
-        with:
-          name: sd-image-manifest-${{ github.sha }}
-          path: artifacts/manifest.json
-          retention-days: 30
-
   comment-pr:
     name: Comment on PR
     runs-on: ubuntu-latest
-    needs: [build-system, build-sd-image]
+    needs: [build-system]
     if: github.event_name == 'pull_request'
     steps:
       - name: Comment on PR with build info
