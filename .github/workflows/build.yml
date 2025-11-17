@@ -48,10 +48,11 @@ jobs:
       - name: Build NixOS system with nix-fast-build
         run: |
           nix run github:Mic92/nix-fast-build -- \
+            --no-nom \
             --skip-cached \
-            --accept-flake-config \
-            --flake ".#nixosConfigurations.vtt.config.system.build.toplevel" \
-            --systems "aarch64-linux"
+            --systems "aarch64-linux" \
+            --result-file result.json \
+            --flake ".#nixosConfigurations.vtt.config.system.build.toplevel"
 
       - name: Create deployment package
         run: |
