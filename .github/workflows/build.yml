@@ -49,6 +49,7 @@ jobs:
         run: |
           nix run github:Mic92/nix-fast-build -- \
             --skip-cached \
+            --accept-flake-config \
             --flake ".#nixosConfigurations.vtt.config.system.build.toplevel" \
             --systems "aarch64-linux"
 
