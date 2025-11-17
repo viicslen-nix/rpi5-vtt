@@ -10,7 +10,10 @@ in {
     raspberry-pi-5.display-vc4
     raspberry-pi-5.bluetooth
     usb-gadget-ethernet
-  ];        
+  ];  
+
+  # Disable documentation
+  documentation.man.enable = false;      
 
   # System configuration
   system = {
