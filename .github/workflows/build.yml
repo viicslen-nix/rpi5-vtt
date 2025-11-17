@@ -86,9 +86,17 @@ jobs:
         with:
           ssh-key: ${{ secrets.BUILD_SSH_KEY }}
 
-      - name: Configure Git to use SSH for GitHub
+      - name: Setup SSH for submodules
         run: |
+          # Get the SSH command configured by checkout action
+          SSH_CMD=$(git config --local core.sshCommand)
+          echo "SSH Command: $SSH_CMD"
+          
+          # Configure git to use SSH for GitHub globally
           git config --global url."git@github.com:".insteadOf "https://github.com/"
+          
+          # Set the SSH command globally so submodules can use it
+          git config --global core.sshCommand "$SSH_CMD"
           
       - name: Checkout submodules
         run: |
