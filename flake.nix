@@ -3,8 +3,13 @@
 
   inputs = {
     self.submodules = true;
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    nixos-raspberrypi.url = "github:nvmd/nixos-raspberrypi/main";
+    nixpkgs.url = "github:nvmd/nixpkgs/modules-with-keys-unstable";
+
+    nixos-raspberrypi = {
+      url = "github:nvmd/nixos-raspberrypi/main";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     foundry-vtt.url = ./flakes/foundry-vtt;
   };
 
@@ -18,7 +23,7 @@
   };
 
   outputs = inputs @ { self, nixpkgs, ... }: {
-    nixosConfigurations.vtt = inputs.nixos-raspberrypi.lib.nixosSystem {
+    nixosConfigurations.vtt = inputs.nixos-raspberrypi.lib.nixosSystemFull {
       specialArgs = { 
         inherit inputs;
         inherit (inputs) nixos-raspberrypi;
