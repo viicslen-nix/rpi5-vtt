@@ -54,6 +54,11 @@ jobs:
             --systems "aarch64-linux" \
             --result-file result.json \
             --flake ".#nixosConfigurations.vtt.config.system.build.toplevel"
+      
+      - name: Display build result
+        run: |
+          cat result.json
+          ls -lh
 
       - name: Create deployment package
         run: |
