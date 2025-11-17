@@ -32,6 +32,13 @@ nixos-rebuild switch --flake .#vtt \
 2. Open browser to: **`http://vtt.local/`**
 3. Start your gaming session! 🎮
 
+### 3. Display Setup (Optional)
+Connect an HDMI display to the Raspberry Pi for automatic kiosk mode:
+- **Automatic startup**: Browser launches in fullscreen on boot
+- **Touch-friendly**: Works great with touchscreens
+- **Wayland-powered**: Modern, efficient display protocol
+- **Always updated**: Shows the same VTT session as WiFi clients
+
 ## 🌐 Access Your VTT Server
 
 Once connected to the WiFi network, access your server via:
@@ -61,7 +68,8 @@ modules/
 ├── wifi-ap.nix           # WiFi AP, DHCP & DNS services
 ├── web-services.nix      # Nginx reverse proxy configuration
 ├── users.nix             # SSH authentication & sudo config
-└── utilities.nix         # Debug tools & system utilities
+├── utilities.nix         # Debug tools & system utilities
+└── display.nix           # Wayland kiosk mode for connected displays
 ```
 
 ## 🌐 Network Architecture
@@ -114,6 +122,12 @@ modules/
 - WiFi status monitoring script
 - USB device auto-mounting
 - Debug and maintenance tools
+
+### `display.nix` - Kiosk Display
+- Wayland compositor (Cage) for minimal kiosk mode
+- Chromium browser in fullscreen kiosk configuration
+- Auto-start on system boot via systemd service
+- Wayland-native with hardware acceleration
 
 ## 🔧 Management & Debugging
 
@@ -232,6 +246,24 @@ ssh vtt@192.168.1.173 'curl -I http://192.168.4.1/'
 
 # Check Foundry VTT backend
 ssh vtt@192.168.1.173 'sudo systemctl status foundry-vtt'
+```
+
+### Kiosk Display Issues
+```bash
+# Check kiosk service status
+ssh vtt@192.168.1.173 'sudo systemctl status vtt-kiosk'
+
+# View kiosk logs
+ssh vtt@192.168.1.173 'sudo journalctl -u vtt-kiosk -f'
+
+# Check if display is detected
+ssh vtt@192.168.1.173 'wlr-randr'
+
+# Restart kiosk service
+ssh vtt@192.168.1.173 'sudo systemctl restart vtt-kiosk'
+
+# Check Wayland environment
+ssh vtt@192.168.1.173 'ps aux | grep cage'
 ```
 
 ## 📋 Requirements

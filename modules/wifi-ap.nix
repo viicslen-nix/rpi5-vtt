@@ -16,11 +16,11 @@
     ieee80211n=1
     ieee80211d=1
     
-    # Security settings
+    # Security settings (WPA2-PSK with CCMP only)
     wpa=2
     wpa_passphrase=foundrycast
     wpa_key_mgmt=WPA-PSK
-    wpa_pairwise=TKIP
+    wpa_pairwise=CCMP
     rsn_pairwise=CCMP
   '';
 
