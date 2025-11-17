@@ -17,8 +17,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          submodules: recursive
           ssh-key: ${{ secrets.BUILD_SSH_KEY }}
+
+      - name: Configure Git to use SSH for GitHub
+        run: |
+          git config --global url."git@github.com:".insteadOf "https://github.com/"
+          
+      - name: Checkout submodules
+        run: |
+          git submodule sync --recursive
+          git submodule update --init --recursive
 
       - name: Install Nix
         uses: cachix/install-nix-action@v26
@@ -76,7 +84,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          ssh-key: ${{ secrets.BUILD_SSH_KEY }}
+
+      - name: Configure Git to use SSH for GitHub
+        run: |
+          git config --global url."git@github.com:".insteadOf "https://github.com/"
+          
+      - name: Checkout submodules
+        run: |
+          git submodule sync --recursive
+          git submodule update --init --recursive
 
       - name: Install Nix
         uses: cachix/install-nix-action@v26
