@@ -43,6 +43,7 @@ jobs:
         with:
           name: nixos-raspberrypi
           skipPush: true
+          useDaemon: false
 
       - name: Build NixOS system
         run: |
