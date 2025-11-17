@@ -19,10 +19,13 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.BUILD_SSH_KEY }}
 
-      - name: Checkout repository with submodules
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
+        
+      - name: Checkout submodules using SSH
+        run: |
+          git submodule sync --recursive
+          git submodule update --init --recursive
 
       - name: Install Nix
         uses: cachix/install-nix-action@v26
