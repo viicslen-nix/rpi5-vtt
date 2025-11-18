@@ -63,7 +63,7 @@ jobs:
       - name: Create deployment package
         run: |
           mkdir -p artifacts
-          cp -rL result artifacts/system
+          cp -rL result- artifacts/system
           
           # Create a manifest with build information
           cat > artifacts/manifest.json <<EOF
