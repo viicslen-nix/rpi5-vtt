@@ -4,7 +4,7 @@ orbs:
   nix: eld/nix@1.1.1
 
 jobs:
-  build-system:
+  build-artifacts:
     machine:
       image: ubuntu-2204:current
     resource_class: arm.medium
@@ -37,18 +37,22 @@ jobs:
           sudo systemctl restart nix-daemon
 
     - run:
-        name: Build NixOS system
+        name: Build system and SD image
         command: |
           . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
-          nix build .#nixosConfigurations.vtt.config.system.build.toplevel -L
+          nix build \
+            .#nixosConfigurations.vtt.config.system.build.toplevel \
+            .#nixosConfigurations.vtt-sd.config.system.build.sdImage \
+            -L
 
     - run:
-        name: Create deployment package
+        name: Create deployment artifacts
         command: |
-          mkdir -p artifacts
+          mkdir -p artifacts/system artifacts/sd-image
           cp -rL result artifacts/system
+          cp -rL result-1/* artifacts/sd-image/
 
-          cat > artifacts/manifest.json <<EOF
+          cat > artifacts/system-manifest.json <<EOF
           {
             "build_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
             "git_commit": "$CIRCLE_SHA1",
@@ -59,64 +63,7 @@ jobs:
           }
           EOF
 
-    - store_artifacts:
-        path: artifacts/system
-        destination: nixos-system
-
-    - store_artifacts:
-        path: artifacts/manifest.json
-        destination: system-manifest.json
-
-    - persist_to_workspace:
-        root: artifacts
-        paths:
-        - manifest.json
-
-  build-sd-image:
-    machine:
-      image: ubuntu-2204:current
-    resource_class: arm.medium
-    steps:
-    - checkout
-
-    - run:
-        name: Checkout submodules
-        command: |
-          git submodule sync
-          git submodule update --init --recursive
-
-    - run:
-        name: Install Nix
-        command: |
-          sh <(curl -L https://nixos.org/nix/install) --daemon --yes
-          echo 'export NIX_PATH=nixpkgs=channel:nixos-unstable' >> $BASH_ENV
-
-    - run:
-        name: Configure Nix
-        command: |
-          sudo mkdir -p /etc/nix
-          sudo tee /etc/nix/nix.conf > /dev/null <<EOF
-          experimental-features = nix-command flakes
-          substituters = https://cache.nixos.org/ https://nixos-raspberrypi.cachix.org
-          trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nixos-raspberrypi.cachix.org-1:4iMO9LXa8BqhU+Rpg6LQKiGa2lsNh/j2oiYLNOQ5sPI=
-          max-jobs = auto
-          cores = 0
-          EOF
-          sudo systemctl restart nix-daemon
-
-    - run:
-        name: Build SD image
-        command: |
-          . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
-          nix build .#nixosConfigurations.vtt.config.system.build.sdImage -L
-
-    - run:
-        name: Create SD image artifacts
-        command: |
-          mkdir -p artifacts
-          cp -rL result/* artifacts/
-
-          cat > artifacts/manifest.json <<EOF
+          cat > artifacts/sd-image-manifest.json <<EOF
           {
             "build_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
             "git_commit": "$CIRCLE_SHA1",
@@ -128,20 +75,26 @@ jobs:
           EOF
 
     - store_artifacts:
-        path: artifacts
+        path: artifacts/system
+        destination: nixos-system
+
+    - store_artifacts:
+        path: artifacts/system-manifest.json
+        destination: system-manifest.json
+
+    - store_artifacts:
+        path: artifacts/sd-image
         destination: sd-image
+
+    - store_artifacts:
+        path: artifacts/sd-image-manifest.json
+        destination: sd-image-manifest.json
 
 workflows:
   version: 2
   build-and-deploy:
     jobs:
-    - build-system:
-        filters:
-          branches:
-            only:
-            - main
-            - /feature\/.*/
-    - build-sd-image:
+    - build-artifacts:
         filters:
           branches:
             only:

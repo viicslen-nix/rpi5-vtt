@@ -17,16 +17,31 @@
     ];
   };
 
-  outputs = inputs @ { self, nixpkgs, ... }: {
-    nixosConfigurations.vtt = inputs.nixos-raspberrypi.lib.nixosSystem {
-      specialArgs = { 
-        inherit inputs;
-        inherit (inputs) nixos-raspberrypi;
+  outputs = inputs @ { self, nixpkgs, ... }:
+    let
+      mkVttSystem = modules:
+        inputs.nixos-raspberrypi.lib.nixosSystem {
+          specialArgs = {
+            inherit inputs;
+            inherit (inputs) nixos-raspberrypi;
+          };
+          inherit modules;
+        };
+    in {
+      nixosConfigurations = {
+        vtt = mkVttSystem [
+          ./hardware.nix
+          ./configuration.nix
+        ];
+        vtt-sd = mkVttSystem [
+          ./configuration.nix
+          ({ lib, ... }: {
+            # Keep the image filesystem set small so the installer image does not
+            # pull in heavyweight extras like zfs-kernel on ARM.
+            boot.supportedFilesystems = lib.mkForce [ "ext4" "vfat" ];
+          })
+          inputs.nixos-raspberrypi.nixosModules.sd-image
+        ];
       };
-      modules = [
-        ./hardware.nix
-        ./configuration.nix
-      ];
     };
-  };
 }
