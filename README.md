@@ -30,10 +30,10 @@ This will automatically download and deploy the latest successful build. See [De
 #### Option B: Manual Build & Deploy
 ```bash
 # Build the configuration locally
-nix build .#nixosConfigurations.vtt.config.system.build.toplevel
+nix build --accept-flake-config .#nixosConfigurations.vtt.config.system.build.toplevel
 
 # Deploy to your Raspberry Pi
-nixos-rebuild switch --flake .#vtt \
+nixos-rebuild switch --accept-flake-config --flake .#vtt \
   --target-host vtt@192.168.1.173 \
   --build-host vtt@192.168.1.173 \
   --use-remote-sudo
@@ -347,7 +347,7 @@ git clone <repo-url>
 cd vtt
 
 # Test build locally
-nix build .#nixosConfigurations.vtt.config.system.build.toplevel
+nix build --accept-flake-config .#nixosConfigurations.vtt.config.system.build.toplevel
 
 # Format nix files
 nix fmt
@@ -355,8 +355,8 @@ nix fmt
 
 ### Making Changes
 1. Edit the relevant module file in `modules/`
-2. Test the build: `nix build .#nixosConfigurations.vtt.config.system.build.toplevel`
-3. Deploy: `nixos-rebuild switch --flake .#vtt --target-host vtt@<PI_IP> --build-host vtt@<PI_IP> --use-remote-sudo`
+2. Test the build: `nix build --accept-flake-config .#nixosConfigurations.vtt.config.system.build.toplevel`
+3. Deploy: `nixos-rebuild switch --accept-flake-config --flake .#vtt --target-host vtt@<PI_IP> --build-host vtt@<PI_IP> --use-remote-sudo`
 
 ### Adding Features
 - **New web services**: Add to `modules/web-services.nix`

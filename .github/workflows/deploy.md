@@ -43,7 +43,7 @@ If you have SSH access and want to build locally but deploy remotely:
 
 ```bash
 # Build and deploy in one command
-nixos-rebuild switch --flake .#vtt --target-host vtt@<raspberry-pi-ip> --use-remote-sudo
+nixos-rebuild switch --accept-flake-config --flake .#vtt --target-host vtt@<raspberry-pi-ip> --use-remote-sudo
 ```
 
 ## CircleCI Setup
