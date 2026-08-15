@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#171914">
+  <title>VTT Control Deck</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #e8e3d2;
+      --muted: #999b8d;
+      --panel: #242720;
+      --panel-hi: #30342a;
+      --void: #11130f;
+      --line: #555a48;
+      --amber: #ffc247;
+      --green: #88d66c;
+      --red: #ff6b54;
+      --blue: #72b7d8;
+      --shadow: #080906;
+      --radius: 4px;
+      font-family: "Bahnschrift", "DIN Alternate", "Arial Narrow", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-width: 300px;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px),
+        radial-gradient(circle at 15% 0%, #2d3027 0, transparent 36%),
+        var(--void);
+      background-size: 28px 28px, 28px 28px, auto, auto;
+      letter-spacing: .02em;
+    }
+
+    button, input, select { font: inherit; }
+    button, a, input, select { -webkit-tap-highlight-color: transparent; }
+
+    button, .button {
+      min-height: 48px;
+      border: 1px solid #747966;
+      border-radius: var(--radius);
+      color: var(--ink);
+      background: linear-gradient(#3b3f34, #292c24);
+      box-shadow: inset 0 1px rgba(255,255,255,.08), 0 2px 0 var(--shadow);
+      padding: .72rem 1rem;
+      text-transform: uppercase;
+      font-weight: 800;
+      letter-spacing: .08em;
+      cursor: pointer;
+    }
+
+    button:hover, .button:hover { border-color: var(--amber); }
+    button:active, .button:active { transform: translateY(1px); box-shadow: none; }
+    button:disabled, .button.disabled { cursor: not-allowed; opacity: .42; filter: grayscale(1); }
+    button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+      outline: 3px solid var(--amber);
+      outline-offset: 3px;
+    }
+
+    input, select {
+      width: 100%;
+      min-height: 48px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      color: var(--ink);
+      background: #151712;
+      padding: .7rem .8rem;
+    }
+
+    label { display: block; color: var(--muted); font-size: .78rem; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
+    label input, label select { margin-top: .4rem; }
+    a { color: inherit; }
+
+    .shell { width: min(1500px, 100%); margin: auto; padding: clamp(.7rem, 1.6vw, 1.5rem); }
+
+    .masthead {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      border-top: 5px solid var(--amber);
+      border-bottom: 1px solid var(--line);
+      padding: .8rem 0 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .identity { flex: 1; min-width: 0; }
+    .eyebrow { color: var(--amber); font: 800 .7rem/1 monospace; letter-spacing: .22em; text-transform: uppercase; }
+    h1 { margin: .18rem 0 0; font-size: clamp(1.6rem, 3.8vw, 3.2rem); line-height: .9; letter-spacing: -.03em; text-transform: uppercase; }
+    .clock { color: var(--muted); font: 700 clamp(.8rem, 1.5vw, 1.05rem)/1 monospace; white-space: nowrap; }
+    .auth-button { white-space: nowrap; }
+
+    .alert {
+      display: none;
+      margin: 0 0 1rem;
+      padding: .85rem 1rem;
+      border: 1px solid var(--red);
+      border-left-width: 6px;
+      background: #3a1e18;
+      color: #ffd8d0;
+      font-weight: 700;
+    }
+    .alert.show { display: block; }
+
+    .launch-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+    .launch {
+      position: relative;
+      display: flex;
+      min-height: 130px;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 1rem;
+      border: 1px solid var(--line);
+      border-left: 8px solid var(--green);
+      border-radius: var(--radius);
+      background: linear-gradient(125deg, #30352a, #20231d 72%);
+      box-shadow: 0 5px 18px rgba(0,0,0,.25);
+      text-decoration: none;
+      overflow: hidden;
+    }
+    .launch::after { content: "↗"; position: absolute; right: .8rem; bottom: -.35rem; color: rgba(255,255,255,.07); font-size: 6rem; line-height: 1; }
+    .launch.online { border-left-color: var(--blue); }
+    .launch.disabled { pointer-events: none; }
+    .launch-kicker { color: var(--muted); font: 800 .7rem/1 monospace; letter-spacing: .18em; text-transform: uppercase; }
+    .launch strong { position: relative; z-index: 1; font-size: clamp(1.3rem, 2.4vw, 2.2rem); text-transform: uppercase; }
+    .launch small { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .status-strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: .65rem; margin-bottom: 1rem; }
+    .status-card { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); padding: .75rem; min-width: 0; }
+    .status-head { display: flex; align-items: center; gap: .55rem; color: var(--muted); font: 800 .68rem/1 monospace; letter-spacing: .1em; text-transform: uppercase; }
+    .lamp { width: 10px; height: 10px; flex: none; border: 1px solid #777; border-radius: 50%; background: #4a4d43; box-shadow: 0 0 0 3px #171913; }
+    .lamp.ok { border-color: var(--green); background: var(--green); box-shadow: 0 0 10px rgba(136,214,108,.55); }
+    .lamp.bad { border-color: var(--red); background: var(--red); }
+    .status-value { margin-top: .7rem; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .status-detail { margin-top: .25rem; color: var(--muted); font: .72rem/1.25 monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .workbench { display: grid; grid-template-columns: 1.15fr 1fr 1fr; gap: 1rem; }
+    .panel { border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(145deg, var(--panel-hi), var(--panel)); box-shadow: 0 5px 18px rgba(0,0,0,.2); }
+    .panel h2 { margin: 0; padding: .8rem 1rem; border-bottom: 1px solid var(--line); font-size: .88rem; letter-spacing: .14em; text-transform: uppercase; }
+    .panel-body { padding: 1rem; }
+    .stack { display: grid; gap: .8rem; }
+    .row { display: flex; gap: .65rem; align-items: end; }
+    .row > label { flex: 1; min-width: 0; }
+    .full { width: 100%; }
+    .accent { border-color: #b78328; color: #18150e; background: linear-gradient(#ffd06b, #e6a72d); }
+    .danger { border-color: #a34233; background: linear-gradient(#71362c, #4d251f); }
+    .quiet { color: var(--muted); font: .75rem/1.45 monospace; }
+    .divider { height: 1px; border: 0; background: var(--line); margin: .2rem 0; }
+    .service-row { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: .6rem; }
+    .service-name { min-width: 0; font-weight: 800; text-transform: uppercase; }
+    .service-name small { display: block; margin-top: .2rem; color: var(--muted); font: .7rem/1 monospace; text-transform: none; }
+    .service-row button { min-height: 42px; padding: .55rem .75rem; font-size: .7rem; }
+    .locked { opacity: .58; }
+
+    dialog {
+      width: min(430px, calc(100% - 2rem));
+      border: 1px solid #777c68;
+      border-top: 6px solid var(--amber);
+      border-radius: var(--radius);
+      color: var(--ink);
+      background: #252820;
+      box-shadow: 0 24px 80px #000;
+      padding: 0;
+    }
+    dialog::backdrop { background: rgba(7,8,6,.83); backdrop-filter: blur(3px); }
+    .dialog-body { padding: 1.2rem; }
+    dialog h2 { margin: 0 0 .4rem; text-transform: uppercase; }
+    dialog p { color: var(--muted); line-height: 1.45; }
+    .dialog-actions { display: flex; justify-content: flex-end; gap: .6rem; margin-top: 1rem; }
+
+    .scan-list { display: grid; gap: .45rem; max-height: 240px; overflow: auto; }
+    .network { display: flex; justify-content: space-between; align-items: center; gap: .6rem; min-height: 48px; padding: .55rem .7rem; border: 1px solid var(--line); border-radius: var(--radius); background: #191b16; cursor: pointer; }
+    .network:hover { border-color: var(--amber); }
+    .network input { width: auto; min-height: auto; margin: 0; }
+    .network span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .network small { color: var(--muted); font-family: monospace; }
+
+    @media (max-width: 900px) {
+      .status-strip { grid-template-columns: repeat(3, 1fr); }
+      .workbench { grid-template-columns: 1fr 1fr; }
+      .workbench .panel:last-child { grid-column: 1 / -1; }
+    }
+
+    @media (max-width: 620px) {
+      .shell { padding: .65rem; }
+      .masthead { gap: .55rem; flex-wrap: wrap; }
+      .clock { display: none; }
+      .auth-button { min-height: 42px; padding: .5rem .7rem; font-size: .68rem; }
+      .launch-grid, .workbench { grid-template-columns: 1fr; }
+      .launch { min-height: 108px; }
+      .status-strip { grid-template-columns: 1fr 1fr; }
+      .workbench .panel:last-child { grid-column: auto; }
+      .row { align-items: stretch; flex-direction: column; }
+      .row button { width: 100%; }
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .panel, .launch, .status-card { animation: arrive .35s both; }
+      .status-card:nth-child(2), .panel:nth-child(2) { animation-delay: .05s; }
+      .status-card:nth-child(3), .panel:nth-child(3) { animation-delay: .1s; }
+      @keyframes arrive { from { opacity: 0; transform: translateY(7px); } }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="masthead">
+      <div class="identity">
+        <div class="eyebrow">Raspberry Pi 5 · Table Control</div>
+        <h1>VTT Control Deck</h1>
+      </div>
+      <time class="clock" id="clock" aria-label="Current time"></time>
+      <button class="auth-button" id="authButton" type="button">Unlock Controls</button>
+    </header>
+
+    <div class="alert" id="alert" role="alert" aria-live="assertive"></div>
+
+    <section class="launch-grid" aria-label="Launch Foundry">
+      <a class="launch" href="http://vtt.local/">
+        <span class="launch-kicker">Local table link</span>
+        <strong>Launch Local Foundry</strong>
+        <small>http://vtt.local/</small>
+      </a>
+      <a class="launch online disabled" id="onlineLaunch" aria-disabled="true">
+        <span class="launch-kicker">Remote player link</span>
+        <strong>Launch Online</strong>
+        <small id="onlineLaunchUrl">URL not configured</small>
+      </a>
+    </section>
+
+    <section class="status-strip" id="statusStrip" aria-label="System status">
+      <article class="status-card" data-status="internet"><div class="status-head"><i class="lamp"></i>Internet</div><div class="status-value">Checking</div><div class="status-detail">Upstream link</div></article>
+      <article class="status-card" data-status="ap"><div class="status-head"><i class="lamp"></i>Access Point</div><div class="status-value">Checking</div><div class="status-detail">Local table network</div></article>
+      <article class="status-card" data-status="foundry-vtt"><div class="status-head"><i class="lamp"></i>Foundry</div><div class="status-value">Checking</div><div class="status-detail">foundry-vtt</div></article>
+      <article class="status-card" data-status="nginx"><div class="status-head"><i class="lamp"></i>nginx</div><div class="status-value">Checking</div><div class="status-detail">Local gateway</div></article>
+      <article class="status-card" data-status="cage-tty1"><div class="status-head"><i class="lamp"></i>Kiosk</div><div class="status-value">Checking</div><div class="status-detail">cage-tty1</div></article>
+    </section>
+
+    <section class="workbench" id="controls" aria-label="System controls">
+      <article class="panel">
+        <h2>01 / Upstream WiFi</h2>
+        <div class="panel-body stack">
+          <div><strong id="wifiState">Not connected</strong><div class="quiet" id="wifiDetail">No upstream details</div></div>
+          <button type="button" id="scanButton" data-protected>Scan Networks</button>
+          <form class="stack" id="wifiForm">
+            <div class="scan-list" id="scanList" aria-live="polite"><span class="quiet">Scan to select a network.</span></div>
+            <label>WiFi password <input id="wifiPassword" type="password" autocomplete="new-password"></label>
+            <button class="accent" type="submit" data-protected>Connect Upstream</button>
+          </form>
+          <button class="danger" type="button" id="disconnectButton" data-protected>Disconnect WiFi</button>
+        </div>
+      </article>
+
+      <article class="panel">
+        <h2>02 / Addressing</h2>
+        <div class="panel-body stack">
+          <div><span class="quiet">ACCESS POINT SSID</span><br><strong id="apSsid">Unavailable</strong></div>
+          <div><span class="quiet">ACCESS POINT PASSWORD</span><br><strong id="apPassword">Status unavailable</strong></div>
+          <hr class="divider">
+          <form class="stack" id="urlForm">
+            <label>Online Foundry URL <input id="onlineUrl" type="url" inputmode="url" placeholder="https://foundry.example.com"></label>
+            <button type="submit" data-protected>Save Online URL</button>
+          </form>
+          <p class="quiet">The access point password is never displayed here.</p>
+        </div>
+      </article>
+
+      <article class="panel">
+        <h2>03 / Machine Control</h2>
+        <div class="panel-body stack">
+          <div class="service-row"><div class="service-name">Foundry VTT<small id="service-foundry-vtt">unknown</small></div><button type="button" data-service="foundry-vtt" data-protected>Restart</button></div>
+          <div class="service-row"><div class="service-name">nginx<small id="service-nginx">unknown</small></div><button type="button" data-service="nginx" data-protected>Restart</button></div>
+          <div class="service-row"><div class="service-name">Kiosk<small id="service-cage-tty1">unknown</small></div><button type="button" data-service="cage-tty1" data-protected>Restart</button></div>
+          <hr class="divider">
+          <button class="danger full" type="button" id="rebootButton" data-protected>Reboot Control Deck</button>
+          <p class="quiet">Actions require the administrator PIN and may interrupt active players.</p>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <dialog id="pinDialog" aria-labelledby="pinTitle">
+    <form class="dialog-body" id="pinForm">
+      <h2 id="pinTitle">Unlock Controls</h2>
+      <p id="pinCopy">Enter the administrator PIN to change system settings.</p>
+      <label>Administrator PIN <input id="pin" type="password" inputmode="numeric" pattern="[0-9]{6,12}" minlength="6" maxlength="12" autocomplete="current-password" required aria-describedby="pinCopy"></label>
+      <div class="dialog-actions"><button type="button" id="pinCancel">Cancel</button><button class="accent" type="submit" id="pinSubmit">Unlock</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="confirmDialog" aria-labelledby="confirmTitle">
+    <form class="dialog-body" method="dialog">
+      <h2 id="confirmTitle">Reboot control deck?</h2>
+      <p>Foundry and the kiosk will be unavailable while the Raspberry Pi restarts.</p>
+      <div class="dialog-actions"><button value="cancel">Cancel</button><button class="danger" value="confirm">Reboot Now</button></div>
+    </form>
+  </dialog>
+
+  <script>
+    const $ = (selector) => document.querySelector(selector);
+    const api = async (path, options = {}) => {
+      if (options.method === 'POST' && options.body == null) options.body = '{}';
+      const response = await fetch(path, {
+        credentials: 'same-origin',
+        ...options,
+        headers: options.body ? { 'Content-Type': 'application/json', ...options.headers } : options.headers
+      });
+      const data = response.status === 204 ? null : await response.json().catch(() => null);
+      if (!response.ok) throw new Error(data?.error || data?.message || `Request failed (${response.status})`);
+      return data;
+    };
+
+    let state = { setupRequired: false, authenticated: false, services: {}, uplink: {}, ap: {} };
+    let polling;
+
+    const showError = (error) => {
+      const alert = $('#alert');
+      alert.textContent = error?.message || String(error);
+      alert.classList.add('show');
+      clearTimeout(showError.timer);
+      showError.timer = setTimeout(() => alert.classList.remove('show'), 8000);
+    };
+
+    const active = (value) => {
+      if (typeof value === 'object' && value !== null) value = value.active ?? value.running ?? value.online ?? value.connected ?? value.status;
+      return value === true || ['active', 'running', 'online', 'connected', 'up', 'enabled', 'healthy'].includes(String(value).toLowerCase());
+    };
+
+    const serviceValue = (name) => state.services?.[name];
+    const serviceLabel = (value) => typeof value === 'object' && value !== null ? value.status || value.state || (active(value) ? 'active' : 'inactive') : String(value ?? 'unknown');
+
+    const paintCard = (name, ok, value, detail) => {
+      const card = document.querySelector(`[data-status="${name}"]`);
+      card.querySelector('.lamp').className = `lamp ${ok ? 'ok' : 'bad'}`;
+      card.querySelector('.status-value').textContent = value;
+      card.querySelector('.status-detail').textContent = detail;
+    };
+
+    const render = () => {
+      const uplinkUp = state.uplink?.ssid != null;
+      const uplinkSsid = state.uplink?.ssid || state.uplink?.network || 'No upstream';
+      const uplinkIp = state.uplink?.addresses?.join(', ') || 'No IP address';
+      const apUp = active(state.ap);
+      const apSsid = state.ap?.ssid || 'Unavailable';
+
+      paintCard('internet', state.uplink?.internet === true, state.uplink?.internet ? 'Online' : 'Offline', uplinkUp ? uplinkSsid : 'No upstream link');
+      paintCard('ap', apUp, apUp ? 'Broadcasting' : 'Offline', apSsid);
+      ['foundry-vtt', 'nginx', 'cage-tty1'].forEach(name => {
+        const value = serviceValue(name);
+        const label = serviceLabel(value);
+        paintCard(name, active(value), active(value) ? 'Running' : 'Stopped', label);
+        $(`#service-${name}`).textContent = label;
+      });
+
+      $('#wifiState').textContent = uplinkUp ? `Connected to ${uplinkSsid}` : 'Not connected';
+      $('#wifiDetail').textContent = uplinkUp ? uplinkIp : 'No upstream details';
+      $('#apSsid').textContent = apSsid;
+      const passwordSet = state.ap?.passwordSet ?? state.ap?.hasPassword ?? state.ap?.passwordConfigured;
+      $('#apPassword').textContent = passwordSet === false ? 'Not configured' : passwordSet === true ? 'Configured' : 'Hidden';
+      if (document.activeElement !== $('#onlineUrl')) $('#onlineUrl').value = state.onlineUrl || '';
+
+      const launch = $('#onlineLaunch');
+      launch.classList.toggle('disabled', !state.onlineUrl);
+      launch.toggleAttribute('aria-disabled', !state.onlineUrl);
+      if (state.onlineUrl) launch.href = state.onlineUrl; else launch.removeAttribute('href');
+      $('#onlineLaunchUrl').textContent = state.onlineUrl || 'URL not configured';
+
+      $('#authButton').textContent = state.authenticated ? 'Lock / Logout' : 'Unlock Controls';
+      document.querySelectorAll('[data-protected]').forEach(el => el.disabled = !state.authenticated);
+      $('#controls').classList.toggle('locked', !state.authenticated);
+
+      if (state.setupRequired && !$('#pinDialog').open) openPin(true);
+    };
+
+    const refresh = async (quiet = false) => {
+      try {
+        state = { ...state, ...await api('/api/status') };
+        render();
+      } catch (error) {
+        if (!quiet) showError(error);
+        paintCard('internet', false, 'Unavailable', 'Status request failed');
+      }
+    };
+
+    const openPin = (setup = false) => {
+      $('#pinTitle').textContent = setup ? 'Create Administrator PIN' : 'Unlock Controls';
+      $('#pinCopy').textContent = setup ? 'First use: choose a PIN to protect network and system controls.' : 'Enter the administrator PIN to change system settings.';
+      $('#pinSubmit').textContent = setup ? 'Set PIN' : 'Unlock';
+      $('#pinCancel').hidden = setup;
+      $('#pin').value = '';
+      $('#pinDialog').dataset.setup = setup ? 'true' : 'false';
+      $('#pinDialog').showModal();
+      $('#pin').focus();
+    };
+
+    const protectedAction = async (work, button) => {
+      if (!state.authenticated) return openPin();
+      const text = button?.textContent;
+      if (button) { button.disabled = true; button.textContent = 'Working…'; }
+      try {
+        await work();
+        await refresh();
+      } catch (error) { showError(error); }
+      finally { if (button) { button.textContent = text; button.disabled = !state.authenticated; } }
+    };
+
+    $('#authButton').addEventListener('click', async () => {
+      if (!state.authenticated) return openPin(state.setupRequired);
+      try { await api('/api/logout', { method: 'POST' }); await refresh(); }
+      catch (error) { showError(error); }
+    });
+
+    $('#pinCancel').addEventListener('click', () => $('#pinDialog').close());
+    $('#pinDialog').addEventListener('cancel', event => {
+      if ($('#pinDialog').dataset.setup === 'true') event.preventDefault();
+    });
+    $('#pinForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      const setup = $('#pinDialog').dataset.setup === 'true';
+      const button = $('#pinSubmit');
+      button.disabled = true;
+      try {
+        await api(setup ? '/api/setup' : '/api/login', { method: 'POST', body: JSON.stringify({ pin: $('#pin').value }) });
+        $('#pinDialog').close();
+        await refresh();
+      } catch (error) { showError(error); $('#pin').select(); }
+      finally { button.disabled = false; }
+    });
+
+    $('#scanButton').addEventListener('click', event => protectedAction(async () => {
+      const result = await api('/api/wifi/scan');
+      const networks = Array.isArray(result) ? result : result?.networks || [];
+      const list = $('#scanList');
+      list.replaceChildren();
+      if (!networks.length) list.innerHTML = '<span class="quiet">No networks found.</span>';
+      networks.forEach((network, index) => {
+        const ssid = typeof network === 'string' ? network : network.ssid;
+        if (!ssid) return;
+        const label = document.createElement('label');
+        label.className = 'network';
+        const radio = document.createElement('input');
+        radio.type = 'radio'; radio.name = 'ssid'; radio.value = ssid; radio.required = true; radio.checked = index === 0;
+        const name = document.createElement('span'); name.textContent = ssid;
+        const signal = document.createElement('small'); signal.textContent = typeof network === 'object' ? network.signal ?? network.strength ?? '' : '';
+        label.append(radio, name, signal); list.append(label);
+      });
+    }, event.currentTarget));
+
+    $('#wifiForm').addEventListener('submit', (event) => {
+      event.preventDefault();
+      const selected = new FormData(event.currentTarget).get('ssid');
+      if (!selected) return showError(new Error('Scan and select a WiFi network first.'));
+      protectedAction(() => api('/api/wifi/connect', { method: 'POST', body: JSON.stringify({ ssid: selected, password: $('#wifiPassword').value }) }), event.submitter);
+    });
+
+    $('#disconnectButton').addEventListener('click', event => protectedAction(() => api('/api/wifi/disconnect', { method: 'POST' }), event.currentTarget));
+
+    $('#urlForm').addEventListener('submit', event => {
+      event.preventDefault();
+      protectedAction(() => api('/api/online-url', { method: 'POST', body: JSON.stringify({ url: $('#onlineUrl').value.trim() }) }), event.submitter);
+    });
+
+    document.querySelectorAll('[data-service]').forEach(button => button.addEventListener('click', () => protectedAction(
+      () => api('/api/service', { method: 'POST', body: JSON.stringify({ name: button.dataset.service, action: 'restart' }) }), button
+    )));
+
+    $('#rebootButton').addEventListener('click', () => {
+      if (!state.authenticated) return openPin();
+      $('#confirmDialog').showModal();
+    });
+    $('#confirmDialog').addEventListener('close', () => {
+      if ($('#confirmDialog').returnValue === 'confirm') protectedAction(() => api('/api/reboot', { method: 'POST' }), $('#rebootButton'));
+    });
+
+    const tick = () => $('#clock').textContent = new Intl.DateTimeFormat([], { weekday: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date());
+    tick(); setInterval(tick, 1000);
+    refresh(); polling = setInterval(() => refresh(true), 10000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(true); });
+  </script>
+</body>
+</html>

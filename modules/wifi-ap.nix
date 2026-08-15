@@ -66,7 +66,7 @@
       ];
       
       # Custom hostname resolution for VTT
-      address = (map (d: "/${d}/192.168.4.1") config.vtt.common.localDomains);
+      address = (map (d: "/${d}/192.168.4.1") (config.vtt.common.localDomains ++ [ "dashboard.local" ]));
       
       # Enable local domain resolution
       local = "/local/";

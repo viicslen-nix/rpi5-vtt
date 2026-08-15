@@ -40,7 +40,7 @@
         --disable-background-networking \
         --disable-sync \
         --disable-translate \
-        "http://${config.vtt.common.primaryDomain}/"
+        "http://dashboard.local/"
     '';
     mode = "0755";
   };
@@ -51,11 +51,16 @@
     user = config.vtt.common.userName;
     program = "/etc/vtt-kiosk-chromium.sh";
     environment = {
-      # Enable Wayland support
-      WAYLAND_DISPLAY = "wayland-1";
+      # Pi 5 exposes V3D (render-only) before the VC4 KMS display device.
+      WLR_DRM_DEVICES = "/dev/dri/card1";
       XDG_RUNTIME_DIR = "/run/user/1000";
       # Chromium Wayland flags
       NIXOS_OZONE_WL = "1";
     };
+  };
+
+  systemd.services.cage-tty1 = {
+    wants = [ "nginx.service" "vtt-dashboard.service" ];
+    after = [ "nginx.service" "vtt-dashboard.service" ];
   };
 }

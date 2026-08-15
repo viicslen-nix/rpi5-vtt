@@ -9,6 +9,7 @@
     ./modules/users.nix
     ./modules/utilities.nix
     ./modules/display.nix
+    ./modules/dashboard.nix
     ./modules/foundry-vtt.nix
     ./modules/deploy.nix
   ];
