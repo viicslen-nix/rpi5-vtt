@@ -282,6 +282,16 @@
           <p class="quiet">Actions require the administrator PIN and may interrupt active players.</p>
         </div>
       </article>
+
+      <article class="panel">
+        <h2>04 / Foundry Sync</h2>
+        <div class="panel-body stack">
+          <div><strong id="syncState">Not synced</strong><div class="quiet" id="syncDetail">Choose which copy should replace the other.</div></div>
+          <button class="accent" type="button" data-sync="pull" data-protected>Pull from Server</button>
+          <button type="button" data-sync="push" data-protected>Push to Server</button>
+          <p class="quiet">Both Foundry instances stop during transfer. Only the destination starts afterward.</p>
+        </div>
+      </article>
     </section>
   </main>
 
@@ -299,6 +309,14 @@
       <h2 id="confirmTitle">Reboot control deck?</h2>
       <p>Foundry and the kiosk will be unavailable while the Raspberry Pi restarts.</p>
       <div class="dialog-actions"><button value="cancel">Cancel</button><button class="danger" value="confirm">Reboot Now</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="syncDialog" aria-labelledby="syncTitle">
+    <form class="dialog-body" method="dialog">
+      <h2 id="syncTitle">Synchronize Foundry?</h2>
+      <p id="syncCopy"></p>
+      <div class="dialog-actions"><button value="cancel">Cancel</button><button class="danger" value="confirm" id="syncConfirm">Continue</button></div>
     </form>
   </dialog>
 
@@ -334,6 +352,7 @@
 
     const serviceValue = (name) => state.services?.[name];
     const serviceLabel = (value) => typeof value === 'object' && value !== null ? value.status || value.state || (active(value) ? 'active' : 'inactive') : String(value ?? 'unknown');
+    const syncBusy = () => ['queued', 'running'].includes(state.sync?.state);
 
     const paintCard = (name, ok, value, detail) => {
       const card = document.querySelector(`[data-status="${name}"]`);
@@ -373,7 +392,12 @@
 
       $('#authButton').textContent = state.authenticated ? 'Lock / Logout' : 'Unlock Controls';
       document.querySelectorAll('[data-protected]').forEach(el => el.disabled = !state.authenticated);
+      document.querySelectorAll('[data-sync]').forEach(el => el.disabled = !state.authenticated || syncBusy());
       $('#controls').classList.toggle('locked', !state.authenticated);
+
+      const syncState = state.sync?.state || 'unknown';
+      $('#syncState').textContent = syncState === 'succeeded' ? 'Sync complete' : syncState === 'failed' ? 'Sync failed' : syncBusy() ? 'Syncing' : 'Not synced';
+      $('#syncDetail').textContent = state.sync?.message || 'Choose which copy should replace the other.';
 
       if (state.setupRequired && !$('#pinDialog').open) openPin(true);
     };
@@ -407,7 +431,7 @@
         await work();
         await refresh();
       } catch (error) { showError(error); }
-      finally { if (button) { button.textContent = text; button.disabled = !state.authenticated; } }
+      finally { if (button) { button.textContent = text; button.disabled = !state.authenticated || (button.matches('[data-sync]') && syncBusy()); } }
     };
 
     $('#authButton').addEventListener('click', async () => {
@@ -469,6 +493,28 @@
     document.querySelectorAll('[data-service]').forEach(button => button.addEventListener('click', () => protectedAction(
       () => api('/api/service', { method: 'POST', body: JSON.stringify({ name: button.dataset.service, action: 'restart' }) }), button
     )));
+
+    document.querySelectorAll('[data-sync]').forEach(button => button.addEventListener('click', () => {
+      if (!state.authenticated) return openPin();
+      const pull = button.dataset.sync === 'pull';
+      $('#syncDialog').dataset.direction = button.dataset.sync;
+      $('#syncTitle').textContent = pull ? 'Replace this TV from the server?' : 'Replace the server from this TV?';
+      $('#syncCopy').textContent = pull
+        ? 'Both instances will stop. This TV is backed up and replaced with the server copy, then only this TV starts.'
+        : 'Both instances will stop. The server is backed up and replaced with this TV copy, then only the server starts.';
+      $('#syncConfirm').textContent = pull ? 'Pull from Server' : 'Push to Server';
+      $('#syncDialog').showModal();
+    }));
+    $('#syncDialog').addEventListener('close', () => {
+      if ($('#syncDialog').returnValue !== 'confirm') return;
+      const direction = $('#syncDialog').dataset.direction;
+      const button = document.querySelector(`[data-sync="${direction}"]`);
+      protectedAction(async () => {
+        await api('/api/sync', { method: 'POST', body: JSON.stringify({ direction }) });
+        state.sync = { direction, state: 'queued', message: 'Sync queued' };
+        render();
+      }, button);
+    });
 
     $('#rebootButton').addEventListener('click', () => {
       if (!state.authenticated) return openPin();

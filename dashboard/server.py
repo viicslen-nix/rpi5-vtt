@@ -17,6 +17,7 @@ import time
 import urllib.parse
 
 STATE = "/var/lib/vtt-dashboard/config.json"
+SYNC_STATUS = "/var/lib/vtt-sync/status.json"
 WIFI = "wlan-upstream"
 SERVICES = ("foundry-vtt", "nginx", "cage-tty1")
 ITERATIONS = 310_000
@@ -32,6 +33,10 @@ status_cache = {"time": 0, "value": None}
 
 def valid_pin(pin):
     return isinstance(pin, str) and re.fullmatch(r"[0-9]{6,12}", pin) is not None
+
+
+def valid_sync_direction(direction):
+    return direction in ("pull", "push")
 
 
 def hash_pin(pin, salt=None):
@@ -127,12 +132,42 @@ def system_status():
     }
 
 
+def sync_status():
+    try:
+        with open(SYNC_STATUS, encoding="utf-8") as f:
+            value = json.load(f)
+        return value if isinstance(value, dict) else {"state": "unknown"}
+    except (FileNotFoundError, OSError, ValueError, json.JSONDecodeError):
+        return {"state": "unknown"}
+
+
+def save_sync_status(direction, state, message):
+    os.makedirs(os.path.dirname(SYNC_STATUS), mode=0o700, exist_ok=True)
+    fd, path = tempfile.mkstemp(dir=os.path.dirname(SYNC_STATUS))
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump({"direction": direction, "state": state, "message": message,
+                       "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}, f,
+                      separators=(",", ":"))
+        os.chmod(path, 0o600)
+        os.replace(path, SYNC_STATUS)
+    finally:
+        if os.path.exists(path):
+            os.unlink(path)
+
+
+def sync_active():
+    return any(service_status(f"vtt-sync@{direction}.service") in ("active", "activating")
+               for direction in ("pull", "push"))
+
+
 def status(authenticated=False):
     with status_lock:
         if time.time() - status_cache["time"] > 2:
             status_cache.update(time=time.time(), value=system_status())
         value = dict(status_cache["value"])
     value["authenticated"] = authenticated
+    value["sync"] = sync_status()
     return value
 
 
@@ -270,6 +305,21 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 cookie = "vtt_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0"
                 return self.json_response(200, {"ok": True}, cookie)
 
+            if self.path == "/api/sync":
+                direction = data.get("direction")
+                if not valid_sync_direction(direction):
+                    return self.json_response(400, {"error": "direction must be pull or push"})
+                with lock:
+                    if sync_active():
+                        return self.json_response(409, {"error": "sync already active"})
+                    save_sync_status(direction, "queued", "Sync queued")
+                    try:
+                        run(["systemctl", "--no-block", "start", f"vtt-sync@{direction}.service"], timeout=5)
+                    except (RuntimeError, subprocess.TimeoutExpired, OSError):
+                        save_sync_status(direction, "failed", "Could not start sync")
+                        raise
+                return self.json_response(202, {"ok": True, "direction": direction})
+
             if self.path == "/api/wifi/connect":
                 ssid, password = data.get("ssid"), data.get("password")
                 if not isinstance(ssid, str) or not 1 <= len(ssid) <= 32:
@@ -340,6 +390,8 @@ def self_test():
     assert not valid_pin("1234") and not valid_pin("123456a") and not valid_pin(123456)
     saved = hash_pin("9876", b"0123456789abcdef")
     assert check_pin("9876", saved) and not check_pin("9875", saved)
+    assert valid_sync_direction("pull") and valid_sync_direction("push")
+    assert not valid_sync_direction("Pull") and not valid_sync_direction(1)
     print("self-test passed")
 
 
