@@ -10,6 +10,7 @@
     ./modules/utilities.nix
     ./modules/display.nix
     ./modules/dashboard.nix
+    ./modules/sync.nix
     ./modules/foundry-vtt.nix
     ./modules/deploy.nix
   ];
