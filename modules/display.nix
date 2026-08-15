@@ -1,6 +1,8 @@
-{ config, pkgs, lib, ... }:
+{ inputs, config, pkgs, lib, ... }:
 
-{
+let
+  chromium = inputs.nixpkgs-browser.legacyPackages.${pkgs.system}.ungoogled-chromium;
+in {
   # Enable Wayland and graphics
   hardware.graphics.enable = true;
 
@@ -9,7 +11,7 @@
 
   # Install packages needed for Wayland kiosk
   environment.systemPackages = with pkgs; [
-    ungoogled-chromium  # Lightweight Chromium without Google dependencies
+    chromium            # Lightweight Chromium without Google dependencies
     cage                # Wayland kiosk compositor
     # wlr-randr         # Display configuration for wlroots compositors
   ];
@@ -27,7 +29,7 @@
       #!/usr/bin/env bash
       # Chromium kiosk launcher (env provided by services.cage.environment)
       sleep 2
-      exec ${pkgs.ungoogled-chromium}/bin/chromium \
+      exec ${chromium}/bin/chromium \
         --kiosk \
         --noerrdialogs \
         --disable-infobars \
