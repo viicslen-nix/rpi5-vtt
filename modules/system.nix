@@ -63,6 +63,7 @@ in {
   # Boot configuration
   boot = {
     # Enable necessary kernel modules for WiFi AP
+    extraModulePackages = [ config.boot.kernelPackages.rtl8821au ];
     kernelModules = [ "brcmfmac" ];
     
     # Enable IP forwarding
