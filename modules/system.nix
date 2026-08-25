@@ -62,9 +62,10 @@ in {
   
   # Boot configuration
   boot = {
-    # Enable necessary kernel modules for WiFi AP
-    extraModulePackages = [ config.boot.kernelPackages.rtl8821au ];
-    kernelModules = [ "brcmfmac" ];
+    # Enable necessary kernel modules for WiFi AP.
+    # RTL8821AU/8811AU USB adapters are handled in-tree by rtw88 since ~6.5,
+    # which is why the out-of-tree rtl8821au package is now marked broken.
+    kernelModules = [ "brcmfmac" "rtw88_8821au" ];
     
     # Enable IP forwarding
     kernel.sysctl = {
