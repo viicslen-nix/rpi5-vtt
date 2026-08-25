@@ -53,10 +53,13 @@ jobs:
         run: |
           nix build --dry-run \
             .#nixosConfigurations.vtt.config.system.build.toplevel \
-            2>&1 | tee /tmp/dry.log | grep -E "will be built|will be fetched" || true
+            > /tmp/dry.log 2>&1 && echo "dry-run OK" || echo "### DRY-RUN FAILED ###"
+          grep -E "will be built|will be fetched" /tmp/dry.log || echo "(no build/fetch summary)"
           echo "--- derivations that must be COMPILED ---"
           grep -o "/nix/store/[^ ]*\.drv" /tmp/dry.log \
-            | sed "s|/nix/store/[a-z0-9]*-||" | sort | uniq -c | sort -rn
+            | sed "s|/nix/store/[a-z0-9]*-||" | sort | uniq -c | sort -rn || true
+          echo "--- last 40 lines of raw dry-run output ---"
+          tail -n 40 /tmp/dry.log
 
       - name: Is the RPi kernel actually cached?
         run: |
