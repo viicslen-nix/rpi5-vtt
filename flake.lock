@@ -128,22 +128,6 @@
         "type": "github"
       }
     },
-    "nixpkgs-browser": {
-      "locked": {
-        "lastModified": 1786599213,
-        "narHash": "sha256-yNJd40f11EzXBjSByCB7IPpeFFAdeoSKKM67dGkfFoU=",
-        "owner": "nixos",
-        "repo": "nixpkgs",
-        "rev": "0e251e24a4f24e036a084b6b4b2d2491af4167f4",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nixos",
-        "ref": "nixos-unstable",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
     "nixpkgs-lib": {
       "locked": {
         "lastModified": 1761765539,
@@ -195,8 +179,7 @@
       "inputs": {
         "foundry-vtt": "foundry-vtt",
         "nixos-raspberrypi": "nixos-raspberrypi",
-        "nixpkgs": "nixpkgs_3",
-        "nixpkgs-browser": "nixpkgs-browser"
+        "nixpkgs": "nixpkgs_3"
       }
     }
   },

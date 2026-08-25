@@ -4,7 +4,6 @@
   inputs = {
     self.submodules = true;
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    nixpkgs-browser.url = "github:nixos/nixpkgs/nixos-unstable";
     nixos-raspberrypi.url = "github:nvmd/nixos-raspberrypi/main";
     foundry-vtt.url = ./flakes/foundry-vtt;
   };
