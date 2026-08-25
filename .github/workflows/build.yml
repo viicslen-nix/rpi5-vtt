@@ -49,10 +49,33 @@ jobs:
           skipPush: true
           useDaemon: false
 
+      - name: What actually needs building
+        run: |
+          nix build --dry-run \
+            .#nixosConfigurations.vtt.config.system.build.toplevel \
+            > /tmp/dry.log 2>&1 && echo "dry-run OK" || echo "### DRY-RUN FAILED ###"
+          grep -E "will be built|will be fetched" /tmp/dry.log || echo "(no build/fetch summary)"
+          echo "--- derivations that must be COMPILED ---"
+          grep -o "/nix/store/[^ ]*\.drv" /tmp/dry.log \
+            | sed "s|/nix/store/[a-z0-9]*-||" | sort | uniq -c | sort -rn || true
+          echo "--- last 40 lines of raw dry-run output ---"
+          tail -n 40 /tmp/dry.log
+
+      - name: Is the RPi kernel actually cached?
+        run: |
+          k=$(nix eval --raw .#nixosConfigurations.vtt.config.boot.kernelPackages.kernel)
+          echo "kernel out path: $k"
+          h=$(basename "$k" | cut -d- -f1)
+          for c in https://cache.nixos.org https://nixos-raspberrypi.cachix.org; do
+            echo "$c -> HTTP $(curl -s -o /dev/null -w '%{http_code}' "$c/$h.narinfo")"
+          done
+          echo "--- substituters actually in effect ---"
+          nix config show 2>/dev/null | grep -E "^(substituters|trusted-public-keys)" || nix show-config | grep -E "^(substituters|trusted-public-keys)"
+
       - name: Build NixOS system with nix-fast-build
+        timeout-minutes: 320
         run: |
           nix run github:Mic92/nix-fast-build -- \
-            --no-nom \
             --skip-cached \
             --out-link "result" \
             --systems "aarch64-linux" \
