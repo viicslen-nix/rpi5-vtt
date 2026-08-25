@@ -53,7 +53,10 @@ jobs:
         run: |
           nix build --dry-run \
             .#nixosConfigurations.vtt.config.system.build.toplevel \
-            2>&1 | tail -n 300
+            2>&1 | tee /tmp/dry.log | grep -E "will be built|will be fetched" || true
+          echo "--- derivations that must be COMPILED ---"
+          grep -o "/nix/store/[^ ]*\.drv" /tmp/dry.log \
+            | sed "s|/nix/store/[a-z0-9]*-||" | sort | uniq -c | sort -rn
 
       - name: Build NixOS system with nix-fast-build
         timeout-minutes: 320
