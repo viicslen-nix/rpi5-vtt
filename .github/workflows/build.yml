@@ -49,10 +49,16 @@ jobs:
           skipPush: true
           useDaemon: false
 
+      - name: What actually needs building
+        run: |
+          nix build --dry-run \
+            .#nixosConfigurations.vtt.config.system.build.toplevel \
+            2>&1 | tail -n 300
+
       - name: Build NixOS system with nix-fast-build
+        timeout-minutes: 320
         run: |
           nix run github:Mic92/nix-fast-build -- \
-            --no-nom \
             --skip-cached \
             --out-link "result" \
             --systems "aarch64-linux" \
