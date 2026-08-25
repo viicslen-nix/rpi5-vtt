@@ -1,7 +1,7 @@
 { inputs, config, pkgs, lib, ... }:
 
 let
-  chromium = pkgs.ungoogled-chromium;
+  chromium = inputs.nixpkgs-browser.legacyPackages.${pkgs.system}.ungoogled-chromium;
 in {
   # Enable Wayland and graphics
   hardware.graphics.enable = true;
