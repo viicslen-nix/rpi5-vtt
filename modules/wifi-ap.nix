@@ -108,9 +108,7 @@
     domains = [ "~." ];
     fallbackDns = [ "8.8.8.8" "8.8.4.4" ];
     # Disable the stub resolver so dnsmasq can use port 53
-    extraConfig = ''
-      DNSStubListener=no
-    '';
+    settings.Resolve.DNSStubListener = false;
   };
 
   services.avahi = {
